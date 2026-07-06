@@ -67,12 +67,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ========== 注册路由 ==========
-from app.api import auth, conversation, chat, knowledge
+from app.api import auth, conversation, chat, knowledge, admin
 
 app.include_router(auth.router)
 app.include_router(conversation.router)
 app.include_router(chat.router)
 app.include_router(knowledge.router)
+app.include_router(admin.router)
 
 
 # ========== 前端静态文件 ==========

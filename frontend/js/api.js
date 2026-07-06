@@ -137,4 +137,17 @@ const API = {
         me() { return API.get('/api/auth/me'); },
         changePassword(data) { return API.put('/api/auth/password', data); },
     },
+
+    // ========== 管理员 API ==========
+
+    admin: {
+        getUserStats() { return API.get('/api/admin/users/stats'); },
+        getUsers(params) {
+            const qs = new URLSearchParams(params || {}).toString();
+            return API.get('/api/admin/users' + (qs ? '?' + qs : ''));
+        },
+        createUser(data) { return API.post('/api/admin/users', data); },
+        updateUserRole(userId, data) { return API.put('/api/admin/users/' + userId + '/role', data); },
+        updateUserStatus(userId, data) { return API.put('/api/admin/users/' + userId + '/status', data); },
+    },
 };

@@ -46,6 +46,22 @@
 
 *图 1-4：普通用户与 AI 模型对话界面*
 
+### 1.5 管理员用户管理界面
+
+管理员可通过用户管理控制台查看所有注册用户的详细信息，包括用户名、昵称、邮箱、角色、账户状态及注册时间。页面顶部提供六项核心统计指标卡片（总用户数、今日/本周/本月新增、活跃用户数、管理员数量），支持按用户名或昵称关键词搜索、按角色（普通用户/管理员）筛选，以及分页浏览。
+
+![用户管理](frontend/assets/images/b5.png)
+
+*图 1-5：管理员用户管理界面*
+
+### 1.6 管理员新增用户界面
+
+管理员可点击"新增用户"按钮弹出创建用户对话框，直接创建新用户账号。创建时可指定用户名、密码、昵称、邮箱以及角色（普通用户或管理员），无需通过注册页面即可完成用户的新增操作。同时，管理员可对现有用户执行角色变更（提升为管理员或降级为普通用户）和账户启用/禁用等管理操作。
+
+![新增用户](frontend/assets/images/b6.png)
+
+*图 1-6：管理员新增用户弹窗界面*
+
 ---
 
 ## 二、系统功能概述
@@ -62,6 +78,7 @@
 | **地图可视化** | 高德地图 JS API 2.0 集成，POI 标记、信息窗、驾车/公交/步行路线规划 | ✅ 已实现 |
 | **多用户多会话** | JWT 认证体系，每用户独立会话空间，对话历史完整持久化 | ✅ 已实现 |
 | **管理员控制台** | 知识库 CRUD、分页查询、文本文件批量导入与结构化解析 | ✅ 已实现 |
+| **用户管理** | 管理员可查看用户注册统计、分页用户列表、新增用户、角色变更、账户启用/禁用 | ✅ 已实现 |
 | **Web 搜索兜底** | 知识库无匹配结果时自动触发 DuckDuckGo 网络搜索作为补充 | ✅ 已实现 |
 | **用户位置感知** | 浏览器 Geolocation API + 高德逆地理编码，注入 AI 上下文 | ✅ 已实现 |
 | **密码安全管理** | bcrypt 哈希加盐存储，JWT 双 Token 机制（access 30min / refresh 7d） | ✅ 已实现 |
@@ -247,6 +264,7 @@ erDiagram
 | `MapView` | `frontend/js/map.js` | 高德地图封装：POI 标记、路线绘制、信息窗、附近搜索 |
 | `renderMarkdown` | `frontend/js/markdown.js` | marked.js 配置：引用上标化、表格包装、链接新窗口打开 |
 | `Auth` | `frontend/js/auth.js` | 登录/注册表单逻辑、Token 管理、登录状态检测 |
+| `AdminUsers` | `frontend/js/admin-users.js` | 用户管理控制台：注册统计、用户列表、新增用户、角色/状态管理 |
 
 ---
 
@@ -299,6 +317,16 @@ erDiagram
 | PUT | `/api/admin/knowledge/{id}` | 🔒 | 更新知识条目 |
 | DELETE | `/api/admin/knowledge/{id}` | 🔒 | 删除知识条目 |
 | POST | `/api/admin/knowledge/batch-import` | 🔒 | 批量导入（`=== 类型：名称 ===` 结构化文本解析） |
+
+### 5.5 用户管理接口 `/api/admin`（管理员专用）
+
+| 方法 | 路径 | 认证 | 说明 |
+|:------|:------|:----:|:-----|
+| GET | `/api/admin/users/stats` | 🔒 | 用户注册统计（总数、今日/本周/本月新增、管理员数、活跃数） |
+| GET | `/api/admin/users` | 🔒 | 分页用户列表（支持搜索 + 角色筛选） |
+| POST | `/api/admin/users` | 🔒 | 管理员创建新用户（可指定角色为 admin 或 user） |
+| PUT | `/api/admin/users/{id}/role` | 🔒 | 修改用户角色（提升/降级管理员） |
+| PUT | `/api/admin/users/{id}/status` | 🔒 | 启用/禁用用户账号 |
 
 ---
 
@@ -397,6 +425,7 @@ tourism-qa-system/
 │   └── app/
 │       ├── api/                    # 路由层
 │       │   ├── auth.py             #   认证接口
+│       │   ├── admin.py            #   用户管理接口
 │       │   ├── chat.py             #   SSE 流式问答接口
 │       │   ├── conversation.py     #   会话管理接口
 │       │   └── knowledge.py        #   知识库 CRUD 接口
@@ -412,6 +441,7 @@ tourism-qa-system/
 │   ├── pages/
 │   │   ├── chat.html               #   AI 问答主页面
 │   │   ├── admin-knowledge.html    #   知识库管理控制台
+│   │   ├── admin-users.html        #   用户管理控制台
 │   │   └── profile.html            #   个人中心
 │   ├── css/
 │   │   ├── common.css              #   全局样式与 CSS 变量
@@ -422,13 +452,16 @@ tourism-qa-system/
 │   │   ├── api.js                  #   HTTP 请求封装
 │   │   ├── chat.js                 #   聊天核心逻辑 + SSE
 │   │   ├── map.js                  #   高德地图封装
-│   │   └── markdown.js             #   Markdown 渲染
+│   │   ├── markdown.js             #   Markdown 渲染
+│   │   └── admin-users.js          #   用户管理控制台逻辑
 │   └── assets/
 │       ├── images/                 #   截图与图片资源
 │       │   ├── b1.png              #     登录界面截图
 │       │   ├── b2.png              #     管理员后台截图
 │       │   ├── b3.png              #     管理员对话截图
-│       │   └── b4.png              #     用户对话截图
+│       │   ├── b4.png              #     用户对话截图
+│       │   ├── b5.png              #     用户管理界面截图
+│       │   └── b6.png              #     新增用户弹窗截图
 │       └── icons/                  #   SVG 图标
 ├── scripts/                        # 运维脚本
 │   └── import_knowledge.py         #   知识库批量导入 + 向量化

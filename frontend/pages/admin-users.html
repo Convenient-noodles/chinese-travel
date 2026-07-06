@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅伴 - 用户管理</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <style>
+        /* 统计卡片 */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-secondary);
+        }
+        .stat-card .stat-label {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            margin-top: 4px;
+        }
+        .stat-card.highlight .stat-value { color: #e65100; }
+
+        /* 角色徽章 */
+        .badge-admin { background: #fce4ec; color: #c62828; }
+        .badge-user { background: #e3f2fd; color: #1565c0; }
+        .badge-active { background: #e8f5e9; color: #2e7d32; }
+        .badge-inactive { background: #f5f5f5; color: #9e9e9e; }
+
+        /* 搜索区域 */
+        .admin-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .admin-toolbar .spacer { flex: 1; }
+    </style>
+</head>
+<body>
+<div class="admin-app">
+    <header class="admin-header">
+        <div class="header-left">
+            <a href="/pages/admin-knowledge.html" class="btn-back">← 知识库管理</a>
+            <span class="header-logo">👥</span>
+            <span class="header-title">旅伴 · 用户管理</span>
+        </div>
+        <div class="header-right">
+            <span id="headerUser"></span>
+            <button id="logoutBtn" class="btn-secondary btn-sm">退出</button>
+        </div>
+    </header>
+
+    <div class="admin-body">
+        <!-- 统计卡片 -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card"><div class="stat-value">-</div><div class="stat-label">总用户数</div></div>
+            <div class="stat-card highlight"><div class="stat-value">-</div><div class="stat-label">今日新增</div></div>
+            <div class="stat-card"><div class="stat-value">-</div><div class="stat-label">本周新增</div></div>
+            <div class="stat-card"><div class="stat-value">-</div><div class="stat-label">本月新增</div></div>
+            <div class="stat-card"><div class="stat-value">-</div><div class="stat-label">活跃用户</div></div>
+            <div class="stat-card"><div class="stat-value">-</div><div class="stat-label">管理员</div></div>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="admin-toolbar">
+            <input type="text" id="searchInput" class="search-input" placeholder="搜索用户名或昵称..." style="max-width:250px;">
+            <button id="searchBtn" class="btn-secondary btn-sm">🔍 搜索</button>
+            <select id="roleFilter" class="filter-select">
+                <option value="">全部角色</option>
+                <option value="user">普通用户</option>
+                <option value="admin">管理员</option>
+            </select>
+            <span class="spacer"></span>
+            <button id="addUserBtn" class="btn-primary btn-sm">＋ 新增用户</button>
+            <button id="refreshBtn" class="btn-secondary btn-sm">🔄 刷新</button>
+        </div>
+
+        <!-- 用户表格 -->
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>用户名</th>
+                        <th>昵称</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>注册时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="7" class="text-center text-muted">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="admin-pagination" id="pagination"></div>
+    </div>
+</div>
+
+<!-- 新增用户弹窗 -->
+<div id="userModal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeUserModal()"></div>
+    <div class="modal-content" style="max-width:450px;">
+        <div class="modal-header">
+            <h3 id="userModalTitle">新增用户</h3>
+            <button class="btn-icon" onclick="closeUserModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group"><label>用户名 <span class="required">*</span></label><input type="text" id="fUsername"></div>
+            <div class="form-group"><label>密码 <span class="required">*</span></label><input type="password" id="fPassword" placeholder="至少6位"></div>
+            <div class="form-group"><label>昵称</label><input type="text" id="fNickname"></div>
+            <div class="form-group"><label>邮箱</label><input type="email" id="fEmail"></div>
+            <div class="form-group"><label>角色</label><select id="fRole"><option value="user">普通用户</option><option value="admin">管理员</option></select></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeUserModal()">取消</button>
+            <button class="btn-primary" id="saveUserBtn">创建用户</button>
+        </div>
+    </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/admin-users.js"></script>
+</body>
+</html>
