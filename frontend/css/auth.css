@@ -5,12 +5,13 @@
 .auth-container {
     display: flex;
     min-height: 100vh;
+    background: url('../assets/a.jpg') center/cover no-repeat fixed;
+    position: relative;
 }
 
 /* --- 左侧品牌区 --- */
 .auth-brand {
     flex: 1;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #D4653A 50%, #C04A2A 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -18,32 +19,22 @@
     position: relative;
     overflow: hidden;
 }
+/* 半透明橙色遮罩层 —— 叠在背景图上方 */
 .auth-brand::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -30%;
-    width: 600px;
-    height: 600px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 50%;
+    inset: 0;
+    background: transparent;
+    z-index: 0;
 }
-.auth-brand::after {
-    content: '';
-    position: absolute;
-    bottom: -20%;
-    left: -10%;
-    width: 400px;
-    height: 400px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 50%;
-}
+/* 装饰圆形 —— 去掉，保持简洁 */
 
 .brand-content {
     position: relative;
     z-index: 1;
     text-align: center;
     color: #fff;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.4);
 }
 .brand-logo { font-size: 72px; margin-bottom: 16px; }
 .brand-title {
@@ -85,6 +76,7 @@
     justify-content: center;
     padding: 40px;
     max-width: 520px;
+    background: transparent;
 }
 
 .auth-form {
@@ -142,7 +134,6 @@
 @media (max-width: 768px) {
     .auth-container { flex-direction: column; }
     .auth-brand { padding: 40px 24px; }
-    .auth-brand::before, .auth-brand::after { display: none; }
     .brand-title { font-size: 32px; }
     .brand-logo { font-size: 48px; }
     .auth-form-area { padding: 24px; max-width: 100%; }
