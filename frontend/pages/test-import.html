@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>导入测试</title></head>
+<body>
+<h2>批量导入测试</h2>
+<textarea id="txt" rows="8" cols="80" placeholder="粘贴内容...">景点：黄果树瀑布
+城市：安顺
+经纬度：105.67, 25.99
+门票：180元</textarea><br>
+<button id="btn">AI 解析</button>
+<pre id="result"></pre>
+
+<script src="../js/config.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script>
+document.getElementById('btn').onclick = async function() {
+    var r = document.getElementById('result');
+    r.textContent = '请求中...';
+    try {
+        var data = await API.post('/api/admin/import/parse', {
+            content: document.getElementById('txt').value
+        });
+        r.textContent = JSON.stringify(data, null, 2);
+    } catch(e) {
+        r.textContent = 'ERROR: ' + (e.message || e) + '\n' + (e.stack || '');
+    }
+};
+</script>
+</body>
+</html>

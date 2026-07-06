@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>JS 测试</title></head>
+<body>
+<h2>JavaScript 是否正常运行？</h2>
+<button id="btn" style="padding:20px;font-size:18px;">点击我</button>
+<p id="msg" style="color:red;">如果看到这行红字说明 HTML 正常</p>
+<script>
+document.getElementById('msg').textContent = '✅ JavaScript 已执行';
+document.getElementById('msg').style.color = 'green';
+document.getElementById('btn').onclick = function() {
+    document.getElementById('msg').textContent = '🎉 按钮被点击了! 时间: ' + new Date().toLocaleTimeString();
+    document.getElementById('msg').style.color = 'blue';
+};
+</script>
+</body>
+</html>

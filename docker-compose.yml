@@ -1,0 +1,81 @@
+version: '3.8'
+
+# ============================================
+# 旅伴 — 中国旅游推荐问答系统 Docker 部署
+# ============================================
+
+services:
+  # --- PostgreSQL 数据库 ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tourism-postgres
+    environment:
+      POSTGRES_DB: tourism
+      POSTGRES_USER: tourism_user
+      POSTGRES_PASSWORD: tourism_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tourism_user -d tourism"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Redis 缓存 ---
+  redis:
+    image: redis:7-alpine
+    container_name: tourism-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- FastAPI 后端 ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tourism-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://tourism_user:tourism_pass@postgres:5432/tourism
+      - REDIS_URL=redis://redis:6379/0
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - JWT_SECRET=${JWT_SECRET:-tourism-qa-jwt-secret}
+      - AMAP_API_KEY=${AMAP_API_KEY}
+      - CHROMA_PERSIST_DIR=/app/chroma_data
+      - DEBUG=false
+      - CORS_ORIGINS=http://localhost:8080,http://localhost
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - chroma_data:/app/chroma_data
+      - ./data:/app/data
+
+  # --- Nginx 前端 + 反向代理 ---
+  frontend:
+    image: nginx:alpine
+    container_name: tourism-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:

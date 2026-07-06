@@ -1,0 +1,93 @@
+/* ============================================
+   旅伴 — 地图组件样式
+   ============================================ */
+
+/* 高德地图信息窗 */
+.amap-info-card {
+    padding: 12px;
+    min-width: 200px;
+    max-width: 300px;
+}
+.amap-info-card h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--color-text);
+}
+.amap-info-card p {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+.amap-info-card .info-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.amap-info-card .info-tags span {
+    padding: 2px 8px;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    border-radius: 12px;
+    font-size: 12px;
+}
+.amap-info-card .info-actions {
+    display: flex;
+    gap: 8px;
+}
+.amap-info-card .info-btn {
+    padding: 4px 12px;
+    border: 1px solid var(--color-primary);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.amap-info-card .info-btn:hover {
+    background: var(--color-primary);
+    color: #fff;
+}
+.amap-info-card .info-btn.primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+.amap-info-card .info-btn.primary:hover { background: var(--color-primary-dark); }
+
+/* 地图标记标签 */
+.map-label {
+    background: var(--color-primary);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+/* 路线信息面板 */
+.route-info-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    padding: 12px;
+    font-size: 13px;
+    max-width: 250px;
+    z-index: 10;
+}
+.route-info-panel .route-distance {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.route-info-panel .route-duration {
+    color: var(--color-text-secondary);
+    margin-top: 4px;
+}

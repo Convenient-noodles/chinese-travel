@@ -1,0 +1,58 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git branch *)",
+      "Bash(git pull *)",
+      "Bash(git log *)",
+      "Bash(git stash *)",
+      "Bash(git fetch *)",
+      "Bash(git config *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git count-objects *)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)",
+      "Bash(ls -la ~/.ssh/ 2>/dev/null || echo \"~/.ssh/ 目录不存在\")",
+      "Read(//c/Users/64003/.ssh/**)",
+      "Bash(ssh-keygen -t ed25519 -C \"gitee@64003\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(python --version)",
+      "Bash(python -m *)",
+      "Bash(pip install *)",
+      "Bash(pytest *)",
+      "Bash(npm test*)",
+      "Bash(npx jest*)",
+      "Bash(npm --version)",
+      "Bash(node --version)",
+      "Bash(curl -s http://localhost:8000/*)",
+      "Bash(taskkill //F //IM python.exe*)",
+      "Bash(ls -la ~/.claude/ 2>/dev/null || echo \"~/.claude/ 目录不存在\")",
+      "Read(//c/Users/64003/.claude/**)",
+      "Bash(mkdir -p \"d:\\\\LG-trival\\\\tourism-qa-system\\\\.claude\\\\agents\")",
+      "Bash(mkdir -p .claude/pass)",
+      "Bash(cat .claude/pass/*)",
+      "Bash(cd d:/LG-trival/tourism-qa-system/backend && *)"
+    ],
+    "additionalDirectories": [
+      "d:\\LG-trival\\tourism-qa-system\\.claude"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo; echo '门禁拦截: 不允许直接使用 git commit'; echo '请使用门禁提交流程 — 输入 帮我提交代码 或 门禁提交 来启动 gitcommit-agent'; echo; exit 1"
+          }
+        ]
+      }
+    ]
+  }
+}

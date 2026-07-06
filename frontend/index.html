@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅伴 - 中国旅游推荐助手</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <!-- 左侧品牌区 -->
+        <div class="auth-brand">
+            <div class="brand-content">
+                <div class="brand-logo">🏔️</div>
+                <h1 class="brand-title">旅伴</h1>
+                <p class="brand-subtitle">中国旅游推荐助手</p>
+                <p class="brand-desc">基于 AI 大模型的智能旅游问答系统<br>为您推荐景点、住宿、美食，规划完美旅程</p>
+                <div class="brand-features">
+                    <span>🗺️ 智能推荐</span>
+                    <span>📍 地图导航</span>
+                    <span>📋 行程规划</span>
+                    <span>💬 多轮对话</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧表单区 -->
+        <div class="auth-form-area">
+            <!-- 登录表单 -->
+            <div id="loginForm" class="auth-form active">
+                <h2>欢迎回来</h2>
+                <p class="form-subtitle">登录您的账号，继续旅行咨询</p>
+                <div class="form-group">
+                    <label for="loginUsername">用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" autocomplete="current-password">
+                </div>
+                <div id="loginError" class="error-message"></div>
+                <button id="loginBtn" class="btn-primary">登 录</button>
+                <p class="form-switch">
+                    还没有账号？<a href="#" onclick="switchForm('register')">立即注册</a>
+                </p>
+            </div>
+
+            <!-- 注册表单 -->
+            <div id="registerForm" class="auth-form">
+                <h2>创建账号</h2>
+                <p class="form-subtitle">注册后即可使用 AI 旅游推荐服务</p>
+                <div class="form-group">
+                    <label for="regUsername">用户名 <span class="required">*</span></label>
+                    <input type="text" id="regUsername" placeholder="2-50个字符" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">密码 <span class="required">*</span></label>
+                    <input type="password" id="regPassword" placeholder="至少6位密码" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="regNickname">昵称</label>
+                    <input type="text" id="regNickname" placeholder="选填，默认为用户名">
+                </div>
+                <div id="regError" class="error-message"></div>
+                <button id="regBtn" class="btn-primary">注 册</button>
+                <p class="form-switch">
+                    已有账号？<a href="#" onclick="switchForm('login')">去登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

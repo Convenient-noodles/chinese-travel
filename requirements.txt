@@ -1,0 +1,60 @@
+# ============================================
+# 中国旅游推荐问答系统 — Python 依赖
+# ============================================
+
+# --- Web 框架 ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# --- 数据库 ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+aiosqlite==0.20.0
+alembic==1.14.1
+psycopg2-binary==2.9.10
+
+# --- 认证 ---
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.19
+
+# --- 数据校验 ---
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# --- 向量数据库 ---
+chromadb==0.5.23
+
+# --- AI / LangChain ---
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-core==0.3.29
+langchain-text-splitters==0.3.2
+# 通义千问集成
+dashscope==1.21.6
+langchain-community
+
+# --- Embedding 模型 ---
+sentence-transformers==3.3.1
+
+# --- HTTP 客户端 ---
+httpx==0.28.1
+aiohttp==3.11.11
+
+# --- 缓存 / 消息队列 ---
+redis==5.2.1
+celery==5.4.0
+
+# --- 工具 ---
+python-dotenv==1.0.1
+jieba==0.42.1
+rank-bm25==0.2.2
+
+# --- 测试 ---
+pytest==8.3.4
+pytest-asyncio==0.25.0
+pytest-cov==6.0.0
+httpx==0.28.1
+
+# --- 生产部署 ---
+gunicorn==23.0.0

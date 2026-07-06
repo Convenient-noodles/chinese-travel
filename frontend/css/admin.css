@@ -1,0 +1,184 @@
+/* ============================================
+   旅伴 — 管理员知识库管理页面样式
+   ============================================ */
+
+.admin-app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--color-bg);
+}
+
+/* --- Header --- */
+.admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-height);
+    padding: 0 20px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+.admin-header .header-left { display: flex; align-items: center; gap: 10px; }
+.btn-back {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+.btn-back:hover {
+    background: var(--color-bg);
+    color: var(--color-primary);
+    text-decoration: none;
+}
+.admin-header .header-logo { font-size: 24px; }
+.admin-header .header-title { font-size: 18px; font-weight: 700; color: var(--color-secondary); }
+.admin-header .header-right { display: flex; align-items: center; gap: 12px; }
+
+/* --- Body --- */
+.admin-body { flex: 1; overflow-y: auto; padding: 20px; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+/* --- Tabs --- */
+.admin-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    box-shadow: var(--shadow-sm);
+}
+.tab-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    color: var(--color-text-secondary);
+}
+.tab-btn:hover { background: var(--color-bg); }
+.tab-btn.active {
+    background: var(--color-secondary);
+    color: #fff;
+}
+
+/* --- Toolbar --- */
+.admin-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.search-input { flex: 1; max-width: 300px; }
+.filter-select { width: 150px; }
+
+/* --- Table --- */
+.admin-table-wrapper {
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.admin-table th, .admin-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 13px;
+}
+.admin-table th {
+    background: var(--color-bg);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+.admin-table tbody tr:hover { background: var(--color-primary-light); }
+.admin-table .actions { display: flex; gap: 6px; white-space: nowrap; }
+.admin-table .actions button { padding: 4px 10px; font-size: 12px; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+.badge-published { background: #e8f5e9; color: #2e7d32; }
+.badge-draft { background: #fff3e0; color: #e65100; }
+
+/* --- Pagination --- */
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: 14px;
+}
+.admin-pagination button {
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+}
+.admin-pagination button:hover { background: var(--color-bg); }
+.admin-pagination button.active { background: var(--color-secondary); color: #fff; border-color: var(--color-secondary); }
+.admin-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* --- Modal --- */
+.modal-lg {
+    max-width: 700px;
+    margin: auto;
+}
+
+.modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+/* Form in modal */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+}
+.form-row.full { grid-template-columns: 1fr; }
+.modal-body {
+    padding: 20px 40px;
+    flex: 1;
+    overflow-y: auto;
+}
+.modal-body .form-group {
+    margin-bottom: 14px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.modal-body label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: block;
+    text-align: center;
+}

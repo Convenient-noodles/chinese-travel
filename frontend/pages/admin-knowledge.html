@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅伴 - 知识库管理</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+<div class="admin-app">
+    <header class="admin-header">
+        <div class="header-left">
+            <a href="/pages/chat.html" class="btn-back">← 返回首页</a>
+            <span class="header-logo">🏔️</span>
+            <span class="header-title">旅伴 · 知识库管理</span>
+        </div>
+        <div class="header-right">
+            <span id="headerUser"></span>
+            <button id="logoutBtn" class="btn-secondary btn-sm">退出</button>
+        </div>
+    </header>
+
+    <div class="admin-body">
+        <!-- 工具栏 -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-type="">全部</button>
+            <button class="tab-btn" data-type="attraction">🏔️ 景点</button>
+            <button class="tab-btn" data-type="hotel">🏨 住宿</button>
+            <button class="tab-btn" data-type="food">🍜 美食</button>
+        </div>
+        <div class="admin-toolbar">
+            <input type="text" id="searchInput" class="search-input" placeholder="搜索..." style="max-width:250px;">
+            <button id="searchBtn" class="btn-secondary btn-sm">🔍</button>
+            <button id="addBtn" class="btn-primary btn-sm">＋ 新增</button>
+            <label class="btn-primary btn-sm" style="background:var(--color-secondary);cursor:pointer;">
+                📂 导入文件
+                <input type="file" id="fileInput" accept=".txt,.md" style="display:none;">
+            </label>
+        </div>
+
+        <!-- 表格 -->
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>类型</th><th>名称</th><th>城市</th><th>操作</th></tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="4" class="text-center text-muted">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="admin-pagination" id="pagination"></div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div id="editModal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content" style="max-width:550px;">
+        <div class="modal-header">
+            <h3 id="modalTitle">新增</h3>
+            <button class="btn-icon" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group"><label>类型</label><select id="fType"><option value="attraction">🏔️ 景点</option><option value="hotel">🏨 住宿</option><option value="food">🍜 美食</option></select></div>
+            <div class="form-group"><label>名称 <span class="required">*</span></label><input type="text" id="fName"></div>
+            <div class="form-group"><label>城市 <span class="required">*</span></label><input type="text" id="fCity"></div>
+            <div class="form-group"><label>简介</label><input type="text" id="fDesc"></div>
+            <div class="form-group"><label>内容 <span class="required">*</span></label><textarea id="fContent" rows="6"></textarea></div>
+            <div class="form-group"><label>经度</label><input type="number" id="fLng" step="any"></div>
+            <div class="form-group"><label>纬度</label><input type="number" id="fLat" step="any"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal()">取消</button>
+            <button class="btn-primary" id="saveBtn">保存</button>
+        </div>
+    </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/admin-knowledge.js"></script>
+</body>
+</html>

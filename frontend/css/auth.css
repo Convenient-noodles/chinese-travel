@@ -1,0 +1,149 @@
+/* ============================================
+   旅伴 — 登录/注册页面样式
+   ============================================ */
+
+.auth-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- 左侧品牌区 --- */
+.auth-brand {
+    flex: 1;
+    background: linear-gradient(135deg, var(--color-primary) 0%, #D4653A 50%, #C04A2A 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    position: relative;
+    overflow: hidden;
+}
+.auth-brand::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 600px;
+    height: 600px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+}
+.auth-brand::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: -10%;
+    width: 400px;
+    height: 400px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 50%;
+}
+
+.brand-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: #fff;
+}
+.brand-logo { font-size: 72px; margin-bottom: 16px; }
+.brand-title {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 4px;
+}
+.brand-subtitle {
+    font-size: 18px;
+    opacity: 0.9;
+    margin-bottom: 24px;
+}
+.brand-desc {
+    font-size: 15px;
+    opacity: 0.75;
+    line-height: 1.8;
+    margin-bottom: 32px;
+}
+.brand-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+.brand-features span {
+    padding: 6px 16px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    font-size: 13px;
+    backdrop-filter: blur(10px);
+}
+
+/* --- 右侧表单区 --- */
+.auth-form-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    max-width: 520px;
+}
+
+.auth-form {
+    display: none;
+    width: 100%;
+    max-width: 400px;
+}
+.auth-form.active { display: block; }
+
+.auth-form h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--color-text);
+}
+.form-subtitle {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    margin-bottom: 32px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--color-text);
+}
+.form-group .required { color: var(--color-error); }
+
+.error-message {
+    color: var(--color-error);
+    font-size: 13px;
+    min-height: 20px;
+    margin-bottom: 12px;
+}
+
+.auth-form .btn-primary {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+}
+
+.form-switch {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+/* --- 响应式 --- */
+@media (max-width: 768px) {
+    .auth-container { flex-direction: column; }
+    .auth-brand { padding: 40px 24px; }
+    .auth-brand::before, .auth-brand::after { display: none; }
+    .brand-title { font-size: 32px; }
+    .brand-logo { font-size: 48px; }
+    .auth-form-area { padding: 24px; max-width: 100%; }
+}

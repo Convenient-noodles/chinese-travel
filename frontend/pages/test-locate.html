@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>定位测试</title></head>
+<body>
+<h2>📍 定位功能测试</h2>
+<p id="status" style="color:blue;">页面已加载</p>
+<button id="btn" style="padding:20px;font-size:18px;">📍 点击定位</button>
+<pre id="log" style="background:#f0f0f0;padding:10px;margin-top:10px;"></pre>
+<script>
+(function() {
+    var log = document.getElementById('log');
+    var status = document.getElementById('status');
+    function L(msg) { log.textContent += msg + '\n'; console.log(msg); }
+
+    L('JS 执行中...');
+    L('geolocation=' + !!navigator.geolocation);
+    L('protocol=' + location.protocol);
+
+    var btn = document.getElementById('btn');
+    if (!btn) { L('ERROR: 按钮未找到!'); return; }
+
+    btn.addEventListener('click', function() {
+        L('>>> 点击事件触发 <<<');
+        status.textContent = '正在获取位置...';
+        status.style.color = 'orange';
+
+        if (!navigator.geolocation) {
+            L('ERROR: 浏览器不支持 geolocation');
+            status.textContent = '浏览器不支持定位';
+            status.style.color = 'red';
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                L('SUCCESS: ' + pos.coords.latitude + ', ' + pos.coords.longitude);
+                status.textContent = '定位成功! ' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
+                status.style.color = 'green';
+            },
+            function(err) {
+                L('FAIL: code=' + err.code + ' ' + err.message);
+                status.textContent = '定位失败: ' + err.message;
+                status.style.color = 'red';
+            },
+            { timeout: 10000, enableHighAccuracy: true }
+        );
+    });
+
+    L('事件绑定完成，请点击按钮');
+    status.textContent = '准备好了，请点击按钮';
+})();
+</script>
+</body>
+</html>

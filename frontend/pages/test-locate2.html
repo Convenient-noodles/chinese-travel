@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>定位 API 测试</title></head>
+<body>
+<h2>定位 API 测试</h2>
+<button id="btn" style="padding:20px;font-size:18px;">📍 获取位置</button>
+<p id="msg">点击按钮测试定位</p>
+<script>
+var msg = document.getElementById('msg');
+document.getElementById('btn').onclick = function() {
+    msg.textContent = '检测 geolocation...';
+    if (!navigator.geolocation) {
+        msg.textContent = '❌ 浏览器不支持定位 API';
+        return;
+    }
+    msg.textContent = 'geolocation 存在，正在请求位置...';
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            msg.textContent = '✅ 定位成功! lat=' + pos.coords.latitude.toFixed(4) + ' lng=' + pos.coords.longitude.toFixed(4);
+            msg.style.color = 'green';
+        },
+        function(err) {
+            var reasons = {1:'用户拒绝',2:'无法获取位置',3:'超时'};
+            msg.textContent = '❌ 定位失败: ' + (reasons[err.code]||err.code) + ' - ' + err.message;
+            msg.style.color = 'red';
+        },
+        { timeout: 15000, enableHighAccuracy: true }
+    );
+};
+</script>
+</body>
+</html>
