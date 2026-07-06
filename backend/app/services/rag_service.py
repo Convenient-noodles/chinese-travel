@@ -7,6 +7,8 @@ RAG 检索增强生成服务
 import json
 import re
 import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from ddgs import DDGS
 from typing import AsyncGenerator, List, Dict, Any, Optional
 from datetime import datetime
@@ -19,6 +21,10 @@ from app.config import settings
 
 # 配置 DashScope API Key
 dashscope.api_key = settings.DASHSCOPE_API_KEY
+
+# LLM 调用专用线程池（避免同步 dashscope SDK 阻塞 asyncio 事件循环）
+# 30 并发用户，每个 LLM 调用 10-60 秒 → 需要足够大的线程池
+_llm_executor = ThreadPoolExecutor(max_workers=30, thread_name_prefix="llm_")
 
 
 # ============================================================
@@ -308,7 +314,7 @@ class RAGService:
         db_url = settings.DATABASE_URL
         if "+aiosqlite" in db_url:
             db_url = db_url.replace("+aiosqlite", "")
-            connect_args = {"check_same_thread": False}
+            connect_args = {"check_same_thread": False, "timeout": 30}
         elif "+aiomysql" in db_url:
             db_url = db_url.replace("+aiomysql", "+pymysql")
             connect_args = {"charset": "utf8mb4"}
@@ -318,7 +324,21 @@ class RAGService:
         else:
             connect_args = {}
 
-        sync_engine = create_engine(db_url, connect_args=connect_args)
+        # 复用模块级同步引擎（避免每次查询都创建/销毁引擎）
+        sync_key = f"_sync_engine_{db_url}"
+        if not hasattr(self, sync_key):
+            setattr(self, sync_key, create_engine(
+                db_url, connect_args=connect_args,
+                pool_size=30, max_overflow=50,
+            ))
+            # 启用 WAL 模式
+            from sqlalchemy import event as sa_event
+            @sa_event.listens_for(getattr(self, sync_key), "connect")
+            def _set_wal(dbapi_conn, conn_record):
+                if "sqlite" in db_url:
+                    dbapi_conn.execute("PRAGMA journal_mode=WAL;")
+                    dbapi_conn.execute("PRAGMA busy_timeout=30000;")
+        sync_engine = getattr(self, sync_key)
 
         # 类别词映射到 item_type（这些词不会出现在知识库文本中）
         # 使用包含匹配：jieba 可能把"特色美食"合成一个词，需要检测子串
@@ -468,7 +488,7 @@ class RAGService:
                 except Exception as e:
                     print(f"[RAG] 搜索失败: {e}")
 
-        sync_engine.dispose()
+        # 复用引擎，不再 dispose
 
         # 去重 + 高质量优先
         seen = set()
@@ -558,8 +578,8 @@ class RAGService:
             {"type": "done", "token_count": N}
             {"type": "error", "code": "...", "message": "..."}
         """
-        # 1. 检索知识库
-        kb_results = self._search_knowledge(message, top_k=5)
+        # 1. 检索知识库（线程池执行，避免阻塞事件循环）
+        kb_results = await asyncio.to_thread(self._search_knowledge, message, top_k=5)
 
         # 引用：仅知识库名称/城市匹配的高分结果（>=0.50）
         cite_results = [r for r in kb_results if r["score"] >= 0.50]
@@ -567,7 +587,7 @@ class RAGService:
         # KB 无结果 → 联网搜索（仅作上下文，不显示为参考资料）
         is_web_search = False
         if not cite_results:
-            web_results = self._search_web(message)
+            web_results = await asyncio.to_thread(self._search_web, message)
             if web_results:
                 kb_results = web_results  # 只用作模型上下文
                 is_web_search = True
@@ -625,40 +645,78 @@ class RAGService:
             messages.append({"role": "system", "content": "以上是对话历史。请基于对话上下文，结合知识库资料回答用户的最新问题。"})
         messages.append({"role": "user", "content": user_content})
 
-        # 7. 调用通义千问流式生成
-        try:
-            responses = Generation.call(
-                model="qwen-turbo",
-                messages=messages,
-                result_format="message",
-                stream=True,
-                incremental_output=True,
-                temperature=0.7,
-                top_p=0.9,
-                max_tokens=2048,
-            )
+        # 7. 调用通义千问流式生成（线程池执行，不阻塞事件循环）
+        loop = asyncio.get_running_loop()
+        token_queue: asyncio.Queue = asyncio.Queue(maxsize=200)
+        llm_done = False
 
-            token_count = 0
-            for response in responses:
-                if response.status_code == HTTPStatus.OK:
-                    choice = response.output.choices[0]
-                    content = choice.message.content
-                    if content:
-                        token_count += 1
-                        yield {"type": "token", "text": content}
-                else:
-                    yield {
+        def _run_llm():
+            """在独立线程中执行同步 dashscope 流式调用"""
+            nonlocal llm_done
+            try:
+                responses = Generation.call(
+                    model="qwen-turbo",
+                    messages=messages,
+                    result_format="message",
+                    stream=True,
+                    incremental_output=True,
+                    temperature=0.7,
+                    top_p=0.9,
+                    max_tokens=2048,
+                )
+
+                t_count = 0
+                for response in responses:
+                    if response.status_code == HTTPStatus.OK:
+                        choice = response.output.choices[0]
+                        content = choice.message.content
+                        if content:
+                            t_count += 1
+                            asyncio.run_coroutine_threadsafe(
+                                token_queue.put({"type": "token", "text": content}),
+                                loop,
+                            )
+                    else:
+                        asyncio.run_coroutine_threadsafe(
+                            token_queue.put({
+                                "type": "error",
+                                "code": f"API_ERROR_{response.status_code}",
+                                "message": response.message or "大模型请求失败",
+                            }),
+                            loop,
+                        )
+                        return
+
+                asyncio.run_coroutine_threadsafe(
+                    token_queue.put({"type": "done", "token_count": t_count}),
+                    loop,
+                )
+            except Exception as e:
+                asyncio.run_coroutine_threadsafe(
+                    token_queue.put({
                         "type": "error",
-                        "code": f"API_ERROR_{response.status_code}",
-                        "message": response.message or "大模型请求失败",
-                    }
-                    return
+                        "code": "LLM_ERROR",
+                        "message": f"AI 服务异常: {str(e)}",
+                    }),
+                    loop,
+                )
+            finally:
+                llm_done = True
 
-            yield {"type": "done", "token_count": token_count}
+        # 在线程池中启动 LLM 调用
+        loop.run_in_executor(_llm_executor, _run_llm)
 
-        except Exception as e:
-            yield {
-                "type": "error",
-                "code": "LLM_ERROR",
-                "message": f"AI 服务异常: {str(e)}",
-            }
+        # 从异步队列中消费 token 并 yield
+        while True:
+            try:
+                chunk = await asyncio.wait_for(token_queue.get(), timeout=120)
+                yield chunk
+                if chunk["type"] in ("done", "error"):
+                    break
+            except asyncio.TimeoutError:
+                yield {
+                    "type": "error",
+                    "code": "LLM_TIMEOUT",
+                    "message": "AI 响应超时（120 秒），请稍后重试",
+                }
+                break

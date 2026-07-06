@@ -15,6 +15,12 @@ build/
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
+
+# 压测产物（含 Token 和大型 HTML 报告）
+tests/tokens.json
+tests/*.html
+tests/results/
 
 # IDE
 .idea/

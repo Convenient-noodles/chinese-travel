@@ -4,6 +4,8 @@
 
 import json
 import asyncio
+import time
+import logging
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,6 +20,7 @@ from app.schemas.conversation import ChatStreamRequest
 from app.api.deps import get_current_user
 from app.services.rag_service import RAGService
 
+logger = logging.getLogger("chat")
 router = APIRouter(prefix="/api/chat", tags=["AI 问答"])
 
 # RAG 服务单例
@@ -111,6 +114,7 @@ async def chat_stream(
         map_pois = []
         token_count = 0
         conv_id = conv.id
+        t_start = time.time()
 
         try:
             # 0. 加载对话历史
@@ -184,13 +188,18 @@ async def chat_stream(
                 token_count=token_count,
             )
 
+            elapsed = time.time() - t_start
+            logger.info(f"[chat/stream] done user={current_user.id} conv={conv_id} tokens={token_count} elapsed={elapsed:.1f}s")
             yield _format_sse("done", {
                 "message_id": assistant_msg.id,
                 "conversation_id": conv_id,
                 "token_count": token_count,
+                "elapsed_ms": int(elapsed * 1000),
             })
 
         except Exception as e:
+            elapsed = time.time() - t_start
+            logger.error(f"[chat/stream] user={current_user.id} conv={conv_id} elapsed={elapsed:.1f}s error={e}")
             yield _format_sse("error", {
                 "code": "STREAM_ERROR",
                 "message": str(e),

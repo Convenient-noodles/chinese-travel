@@ -531,7 +531,224 @@ const decoder = new TextDecoder();
 
 ---
 
-## 九、总结与展望
+## 九、性能测试与优化
+
+### 9.1 测试概述
+
+为验证系统在实际并发负载下的性能表现，本项目使用 Locust 压力测试框架对核心 API 进行了多轮负载测试。测试覆盖了系统的五个关键接口：会话创建、SSE 流式问答、会话列表查询、多轮对话以及知识库管理。
+
+**测试工具与配置：**
+
+| 项目 | 说明 |
+|------|------|
+| **压测工具** | Locust 2.x（Python 开源负载测试框架） |
+| **测试策略** | 预生成 JWT Token 跳过 bcrypt 登录瓶颈，专注测试 SSE 流式响应与数据库并发能力 |
+| **用户模拟** | `HttpUser` 模拟真实用户行为，任务权重分布：SSE 问答 70%、会话列表 15%、多轮对话 10%、知识库 5% |
+| **等待间隔** | 每任务间随机等待 2–5 秒 |
+| **SSE 超时** | 120 秒（匹配 LLM 推理最长等待时间） |
+| **测试题库** | 30 条真实旅游场景问题 |
+| **预生成用户** | 20 个普通用户 + 1 个管理员账号 |
+| **后端环境** | FastAPI + Uvicorn（单 Worker），SQLite + WAL 模式 |
+
+**压测脚本架构：**
+
+```python
+class TourismUser(HttpUser):
+    wait_time = between(2, 5)
+
+    def on_start(self):
+        # 使用预生成 JWT Token，跳过 bcrypt 登录
+        self.token = random.choice(TOKENS)
+        self.client.headers["Authorization"] = f"Bearer {self.token}"
+        # 创建测试会话
+        self.client.post("/api/conversations", ...)
+
+    @task(70)   # 70% 的请求为 SSE 流式问答
+    def chat(self): ...
+
+    @task(15)   # 15% 为会话列表查询
+    def list_conv(self): ...
+
+    @task(10)   # 10% 为多轮对话
+    def multi_turn(self): ...
+
+    @task(5)    # 5% 为知识库查询（管理员 Token）
+    def knowledge(self): ...
+```
+
+### 9.2 第一轮测试：修复前（30 并发用户）
+
+**测试时间**：2026-07-06 20:01:33 → 20:04:58（约 3 分 25 秒）  
+**并发用户数**：30（5 秒内爬升至满负载）
+
+| 接口 | 成功/总数 | 失败率 | P50 | P95 | 最大 | 平均 |
+|------|:---------:|:------:|-----|-----|------|-----|
+| 01_创建会话 | 30/30 | 0% | **30,000ms** | 45,000ms | 45,469ms | 30,576ms |
+| 02_SSE问答 | 2/24 | **91.7%** | 120,000ms | 122,000ms | 122,059ms | 110,851ms |
+| 03_会话列表 | 5/5 | 0% | 560ms | 1,300ms | 1,304ms | 710ms |
+| 04_多轮对话 | 1/3 | **66.7%** | 120,000ms | 120,000ms | 120,015ms | 89,943ms |
+| 05_知识库 | 0/1 | **100%** | 178ms | 180ms | 178ms | 178ms |
+| **合计** | **38/63** | **39.7%** | 37,000ms | 120,000ms | 122,059ms | 61,131ms |
+
+**发现的核心问题：**
+
+1. **SSE 问答 91.7% 失败率**——根本原因为 `rag_service.py` 中通义千问 `Generation.call()` 是同步阻塞调用，在 `async def` 流式生成器中直接遍历同步流，导致每次 LLM 调用占用 asyncio 事件循环 10–60 秒。30 个并发请求实际上被串行化处理，大部分请求在 120 秒超时后才返回失败。
+
+2. **创建会话 P50 = 30 秒**——SQLite 仅支持单一写者，30 个并发 `INSERT` 操作在数据库层面排队等待写锁。尽管已启用 WAL 模式（`PRAGMA journal_mode=WAL`）与 `busy_timeout=60000`，大量并发写入仍导致显著的锁竞争延迟。
+
+3. **知识库 100% 失败**——`/api/admin/knowledge` 端点要求 `require_admin` 权限（JWT 中 `role == "admin"`），但 20 个压测用户均为普通角色，返回 HTTP 403 Forbidden（178ms 快速失败）。
+
+### 9.3 优化方案
+
+针对上述三个核心问题，进行了以下系统级优化：
+
+**优化一：LLM 调用异步化（解决 91.7% 故障率）**
+
+将同步 `Generation.call()` 从异步事件循环中卸载至专用线程池，通过 `asyncio.Queue` 实现同步线程到异步协程的令牌桥接。
+
+```python
+# rag_service.py — 关键技术改动
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+_llm_executor = ThreadPoolExecutor(max_workers=30, thread_name_prefix="llm_")
+
+async def astream_chat(self, ...):
+    loop = asyncio.get_running_loop()
+    token_queue: asyncio.Queue = asyncio.Queue(maxsize=200)
+
+    def _run_llm():
+        """同步 dashscope 调用在独立线程中执行，不阻塞事件循环"""
+        responses = Generation.call(model="qwen-turbo", stream=True, ...)
+        for response in responses:
+            content = response.output.choices[0].message.content
+            if content:
+                asyncio.run_coroutine_threadsafe(
+                    token_queue.put({"type": "token", "text": content}), loop
+                )
+
+    loop.run_in_executor(_llm_executor, _run_llm)
+
+    while True:
+        chunk = await asyncio.wait_for(token_queue.get(), timeout=120)
+        yield chunk
+        if chunk["type"] in ("done", "error"):
+            break
+```
+
+同时将知识库检索（`_search_knowledge`）与联网搜索回退（`_search_web`）也改为 `asyncio.to_thread()` 执行，彻底消除同步阻塞对事件循环的影响。
+
+**优化二：SQLite 并发写入控制（解决 30s P50 延迟）**
+
+引入 `asyncio.Semaphore(10)` 限制同时持有数据库会话的协程数量，并通过增强的 PRAGMA 配置提升写入性能：
+
+```python
+# database.py — 关键技术改动
+import asyncio
+
+# SQLite 写入并发限制：避免 30 个协程同时争抢写锁
+if settings.DATABASE_URL.startswith("sqlite"):
+    _db_semaphore = asyncio.Semaphore(10)
+else:
+    _db_semaphore = None  # PostgreSQL 不需要
+
+# 增强 PRAGMA 配置
+PRAGMA synchronous=NORMAL;    # 大幅提升写入性能（牺牲极少 crash 安全性）
+PRAGMA cache_size=-8000;      # 8MB 页面缓存，加速读写
+PRAGMA busy_timeout=60000;    # 写锁等待最长 60 秒
+```
+
+此方案在 SQLite 单写者架构限制下，通过控制并发度避免了 30 个协程同时冲击写锁导致的排队延迟，同时保留了对 PostgreSQL 的无缝兼容（信号量仅 SQLite 时启用）。
+
+**优化三：压测脚本修复（解决 100% 知识库失败）**
+
+- 更新 `gen_tokens.py`：同时预生成管理员 Token
+- 更新 `locustfile.py`：知识库任务使用管理员 Token 发起请求
+- 为所有 SSE 任务添加 `catch_response=True` 与详细错误日志
+
+### 9.4 第二轮测试：修复后（20 并发用户）
+
+**测试时间**：2026-07-06 20:29:09 → 20:31:53（约 2 分 44 秒）  
+**并发用户数**：20（5 秒内爬升至满负载）
+
+| 接口 | 成功/总数 | 失败率 | P50 | P95 | 最大 | 平均 |
+|------|:---------:|:------:|-----|-----|------|-----|
+| 01_创建会话 | 20/20 | 0% | 2,100ms | 2,100ms | 2,150ms | 2,083ms |
+| 02_SSE问答 | 81/81 | 0% | 18,000ms | 27,000ms | 41,516ms | 16,607ms |
+| 03_会话列表 | 32/32 | 0% | 90ms | 2,100ms | 2,067ms | 1,032ms |
+| 04_多轮对话 | 29/29 | 0% | 18,000ms | 23,000ms | 23,758ms | 17,864ms |
+| 05_知识库 | 5/5 | 0% | 2,066ms | 2,100ms | 2,066ms | 2,048ms |
+| **合计** | **167/167** | **0%** | 13,000ms | 24,000ms | 41,516ms | 11,666ms |
+
+**改善幅度：**
+
+| 指标 | 修复前（30并发） | 修复后（20并发） | 改善 |
+|------|:-------------:|:-------------:|:----:|
+| 总失败率 | 39.7% | **0%** | 消除全部失败 |
+| SSE 问答 P50 | 120,000ms | **18,000ms** | ↓ 85% |
+| 创建会话 P50 | 30,000ms | **2,100ms** | ↓ 93% |
+| 总请求数（相仿时长） | 63 | **167** | ↑ 165% |
+| 吞吐量（RPS） | 0.31 | **1.02** | ↑ 229% |
+
+### 9.5 第三轮测试：修复后（50 并发用户）
+
+为进一步验证系统在更高负载下的稳定性，将并发用户数提升至 50。
+
+**测试时间**：2026-07-06 20:34:12 → 20:35:52（约 1 分 40 秒）  
+**并发用户数**：50（每 5 秒增加 5 用户，线性爬升）
+
+| 接口 | 成功/总数 | 失败率 | P50 | P95 | 最大 |
+|------|:---------:|:------:|-----|-----|------|
+| 01_创建会话 | 50/50 | 0% | 2,100ms | 8,200ms | 15,417ms |
+| 02_SSE问答 | 66/66 | 0% | 25,000ms | 38,000ms | 44,910ms |
+| 03_会话列表 | 16/16 | 0% | 8ms | 16,000ms | 15,743ms |
+| 04_多轮对话 | 10/10 | 0% | 28,000ms | 33,000ms | 32,689ms |
+| 05_知识库 | 6/6 | 0% | 2,060ms | 2,100ms | 2,060ms |
+| **合计** | **148/148** | **0%** | 10,000ms | 33,000ms | 44,910ms |
+
+**50 并发下的关键发现：**
+
+1. **零失败记录**——148 个请求全部成功，三组修复在 50 并发压力下依然有效。
+
+2. **SQLite 信号量成为新瓶颈**——`03_会话列表` 出现典型的双峰分布（P50 = 8ms，P95 = 16s），表明约 10% 的请求因等待 `Semaphore(10)` 数据库槽位而产生额外 14–16 秒延迟。50 个用户中有约 35 个在执行长时间 SSE 问答（每个持有数据库会话 25+ 秒），剩余 15 个用户的读请求被迫排队等待。
+
+3. **SSE 响应时间保持可控**——P50 = 25s、P95 = 38s，随并发增加呈现线性增长（相比 20 用户时 P50 = 18s），主要受通义千问 API 并发限制和线程池调度开销影响。
+
+### 9.6 三组测试趋势汇总
+
+```
+指标              30并发(修复前)   20并发(修复后)   50并发(修复后)
+─────────────────────────────────────────────────────────────
+总失败率              39.7%  ████████████████████████
+                       0%                   ·
+                       0%                                  ·
+SSE问答 P50           120s  ████████████████████████████████
+                       18s  ████
+                       25s  ██████
+创建会话 P50           30s  ████████
+                      2.1s  ▌
+                      2.1s  ▌
+吞吐量 (RPS)          0.31  ▌
+                      1.02  ███
+                      1.48  ████
+请求总数 (相仿时长)      63  ████
+                      167  ███████████
+                      148  ██████████
+```
+
+### 9.7 进一步优化建议
+
+| 优先级 | 方向 | 措施 | 预期效果 |
+|:------:|------|------|----------|
+| **高** | 数据库升级 | SQLite → PostgreSQL（docker-compose.yml 已配置） | 消除写锁串行化，移除 Semaphore 限制，P95 延迟降低 80%+ |
+| **高** | 连接池调优 | PostgreSQL 下 `pool_size=50, max_overflow=100` | 50 并发全速，无需排队等待连接 |
+| **中** | ASGI Worker | Uvicorn `--workers 4`（多 Worker 模式） | 利用多核 CPU，提升整体吞吐 |
+| **中** | LLM 并发限制 | 增加 DashScope API 并发配额或迁移至更高并发模型 | 降低 SSE 问答在高负载下的 P95 延迟 |
+| **低** | Redis 缓存 | 启用已配置的 Redis，缓存热门知识库查询结果 | 减少重复检索的数据库压力 |
+
+---
+
+## 十、总结与展望
 
 ### 9.1 当前成果
 
